@@ -26,7 +26,7 @@ function switchMode() {
 }
 
 function decimalAFraccio(decimal) {
-    if (Math.abs(decimal) < 0.00001) return "0";
+    if (Math.abs(decimal) < 0.0001) return "0";
     if (Number.isInteger(decimal)) return decimal.toString();
     const tolerancia = 1.0E-6;
     let h1 = 1, h2 = 0, k1 = 0, k2 = 1, b = Math.abs(decimal);
@@ -40,13 +40,12 @@ function decimalAFraccio(decimal) {
 }
 
 function executar() {
-    // Evitar càlculs si un camp està buit mentre s'escriu
     const inputs = document.querySelectorAll('input');
     for (let i of inputs) if (i.value === "") return;
 
     const mode = document.getElementById('mode-selector').value;
     const res = document.getElementById('resultat-text');
-    let f, titol, info = "";
+    let f, titol, info = "", xMin = -10, xMax = 10;
 
     if (mode === 'punts') {
         const x1 = parseFloat(document.getElementById('x1').value);
@@ -57,102 +56,103 @@ function executar() {
 
         const m = (y2 - y1) / (x2 - x1);
         const n = y1 - m * x1;
-        titol = `f(x) = ${m.toFixed(2)}x ${n >= 0 ? '+'+n.toFixed(2) : n.toFixed(2)}`;
         f = (x) => m * x + n;
-        info = `<div class="badge">Equació: <b>${decimalAFraccio(m)}x ${n>=0?'+':''} ${decimalAFraccio(n)}</b></div>
-                <div class="badge">Domini: <b>ℝ</b></div>
-                <div class="badge">Recorregut: <b>ℝ</b></div>`;
+        
+        // Limitem la gràfica exactament entre els dos punts
+        xMin = Math.min(x1, x2);
+        xMax = Math.max(x1, x2);
+        const yMin = Math.min(y1, y2);
+        const yMax = Math.max(y1, y2);
+
+        titol = `f(x) = ${decimalAFraccio(m)}x ${n >= 0 ? '+ '+decimalAFraccio(n) : decimalAFraccio(n)}`;
+        info = `
+            <div class="badge"><b>Domini (segment):</b> [${decimalAFraccio(xMin)}, ${decimalAFraccio(xMax)}]</div>
+            <div class="badge"><b>Recorregut (segment):</b> [${decimalAFraccio(yMin)}, ${decimalAFraccio(yMax)}]</div>
+        `;
     } else if (mode === 'lineal') {
         const m = parseFloat(document.getElementById('m').value || 0);
         const n = parseFloat(document.getElementById('n').value || 0);
-        titol = `f(x) = ${m}x ${n >= 0 ? '+'+n : n}`;
         f = (x) => m * x + n;
-        info = `<div class="badge">Domini: <b>ℝ</b></div><div class="badge">Recorregut: <b>ℝ</b></div>`;
+        
+        // Per defecte en lineals usem un rang estàndard de visió
+        const yStart = f(-10);
+        const yEnd = f(10);
+
+        titol = `f(x) = ${decimalAFraccio(m)}x ${n >= 0 ? '+ '+decimalAFraccio(n) : decimalAFraccio(n)}`;
+        info = `
+            <div class="badge"><b>Domini:</b> ℝ</div>
+            <div class="badge"><b>Recorregut:</b> ℝ</div>
+        `;
     } else {
         const a = parseFloat(document.getElementById('a').value || 0);
         const b = parseFloat(document.getElementById('b').value || 0);
         const c = parseFloat(document.getElementById('c').value || 0);
         if (a === 0) return;
 
-        titol = `f(x) = ${a}x² ${b >= 0 ? '+'+b : b}x ${c >= 0 ? '+'+c : c}`;
         f = (x) => a*x*x + b*x + c;
-        
         const vx = -b / (2 * a);
         const vy = f(vx);
-        const tipusPunt = a > 0 ? "Mínim" : "Màxim";
-        const recorregut = a > 0 ? `[${vy.toFixed(2)}, +∞)` : `(-∞, ${vy.toFixed(2)}]`;
+        xMin = vx - 5; 
+        xMax = vx + 5;
 
+        const tipusPunt = a > 0 ? "Mínim" : "Màxim";
+        const recSymbol = a > 0 ? `[${decimalAFraccio(vy)}, +∞)` : `(-∞, ${decimalAFraccio(vy)}]`;
+
+        titol = `f(x) = ${decimalAFraccio(a)}x² ${b >= 0 ? '+ '+decimalAFraccio(b) : decimalAFraccio(b)}x ${c >= 0 ? '+ '+decimalAFraccio(c) : decimalAFraccio(c)}`;
         info = `
-            <div class="badge">${tipusPunt}: <b>(${vx.toFixed(2)}, ${vy.toFixed(2)})</b></div>
-            <div class="badge">Domini: <b>ℝ</b></div>
-            <div class="badge">Recorregut: <b>${recorregut}</b></div>
+            <div class="badge" style="background:#e8f4fd; display:block;"><b>${tipusPunt}:</b> (${decimalAFraccio(vx)}, ${decimalAFraccio(vy)})</div>
+            <div class="badge"><b>Domini:</b> ℝ</div>
+            <div class="badge"><b>Recorregut:</b> ${recSymbol}</div>
         `;
     }
 
-    res.innerHTML = `<h4>${titol}</h4>${info}`;
-    dibuixar(f, titol);
+    res.innerHTML = `<div style="text-align:center; margin-bottom:10px;"><b>${titol}</b></div>${info}`;
+    dibuixar(f, xMin, xMax);
 }
 
-function dibuixar(f, label) {
-    const xL = [], yD = [];
-    let minY = Infinity;
-    let maxY = -Infinity;
-
-    for (let x = -10; x <= 10; x += 0.5) {
-        xL.push(x);
-        let valY = f(x);
-        yD.push(valY);
-        if (valY < minY) minY = valY;
-        if (valY > maxY) maxY = valY;
-    }
-
-    // AJUST D'ESCALA: Si el rang és massa gran, el limitem per veure bé el vèrtex
-    let margin = 5;
-    let viewMin = minY - margin;
-    let viewMax = maxY + margin;
-
-    // Si és una paràbola molt punteguda, limitem a un rang de 40 unitats per no perdre el detall
-    if (viewMax - viewMin > 40) {
-        // Busquem un rang més "humà" al voltant del valor més baix/alt significatiu
-        viewMax = Math.min(viewMax, 50);
-        viewMin = Math.max(viewMin, -50);
+function dibuixar(f, xMin, xMax) {
+    const xValues = [];
+    const yData = [];
+    
+    // Generem punts només dins de l'interval definit
+    const pas = (xMax - xMin) / 50; 
+    for (let x = xMin; x <= xMax; x += pas) {
+        xValues.push(x.toFixed(2));
+        yData.push(f(x));
     }
 
     const ctx = document.getElementById('graficaCanvas').getContext('2d');
-    if (instaciaGrafica) {
-        instaciaGrafica.destroy();
-        instaciaGrafica = null;
-    }
+    if (instaciaGrafica) instaciaGrafica.destroy();
 
-    try {
-        instaciaGrafica = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: xL,
-                datasets: [{ 
-                    label: label, 
-                    data: yD, 
-                    borderColor: '#3498db', 
-                    borderWidth: 2,
-                    pointRadius: 0, // Traç net
-                    fill: false, 
-                    tension: 0.3 
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: false, // Millora el rendiment al mòbil
-                scales: {
-                    y: {
-                        min: viewMin,
-                        max: viewMax,
-                        grid: { color: '#f0f0f0' }
-                    },
-                    x: { grid: { display: false } }
+    instaciaGrafica = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: xValues,
+            datasets: [{
+                data: yData,
+                borderColor: '#3498db',
+                borderWidth: 3,
+                pointRadius: 4, // Punts visibles als extrems
+                pointHitRadius: 10,
+                fill: false,
+                tension: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    type: 'linear',
+                    position: 'center',
+                    grid: { color: '#ddd' }
                 },
-                plugins: { legend: { display: false } }
-            }
-        });
-    } catch (e) { console.error(e); }
+                y: {
+                    position: 'center',
+                    grid: { color: '#ddd' }
+                }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
 }

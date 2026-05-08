@@ -45,7 +45,7 @@ function executar() {
 
     const mode = document.getElementById('mode-selector').value;
     const res = document.getElementById('resultat-text');
-    let f, titol, info = "", xMin = -10, xMax = 10;
+    let f, titol, info = "", xMin, xMax;
 
     if (mode === 'punts') {
         const x1 = parseFloat(document.getElementById('x1').value);
@@ -58,7 +58,6 @@ function executar() {
         const n = y1 - m * x1;
         f = (x) => m * x + n;
         
-        // Limitem la gràfica exactament entre els dos punts
         xMin = Math.min(x1, x2);
         xMax = Math.max(x1, x2);
         const yMin = Math.min(y1, y2);
@@ -66,23 +65,16 @@ function executar() {
 
         titol = `f(x) = ${decimalAFraccio(m)}x ${n >= 0 ? '+ '+decimalAFraccio(n) : decimalAFraccio(n)}`;
         info = `
-            <div class="badge"><b>Domini (segment):</b> [${decimalAFraccio(xMin)}, ${decimalAFraccio(xMax)}]</div>
-            <div class="badge"><b>Recorregut (segment):</b> [${decimalAFraccio(yMin)}, ${decimalAFraccio(yMax)}]</div>
+            <div class="badge"><b>Domini:</b> [${decimalAFraccio(xMin)}, ${decimalAFraccio(xMax)}]</div>
+            <div class="badge"><b>Recorregut:</b> [${decimalAFraccio(yMin)}, ${decimalAFraccio(yMax)}]</div>
         `;
     } else if (mode === 'lineal') {
         const m = parseFloat(document.getElementById('m').value || 0);
         const n = parseFloat(document.getElementById('n').value || 0);
         f = (x) => m * x + n;
-        
-        // Per defecte en lineals usem un rang estàndard de visió
-        const yStart = f(-10);
-        const yEnd = f(10);
-
+        xMin = -10; xMax = 10;
         titol = `f(x) = ${decimalAFraccio(m)}x ${n >= 0 ? '+ '+decimalAFraccio(n) : decimalAFraccio(n)}`;
-        info = `
-            <div class="badge"><b>Domini:</b> ℝ</div>
-            <div class="badge"><b>Recorregut:</b> ℝ</div>
-        `;
+        info = `<div class="badge"><b>Domini:</b> ℝ</div><div class="badge"><b>Recorregut:</b> ℝ</div>`;
     } else {
         const a = parseFloat(document.getElementById('a').value || 0);
         const b = parseFloat(document.getElementById('b').value || 0);
@@ -92,9 +84,8 @@ function executar() {
         f = (x) => a*x*x + b*x + c;
         const vx = -b / (2 * a);
         const vy = f(vx);
-        xMin = vx - 5; 
-        xMax = vx + 5;
-
+        xMin = vx - 5; xMax = vx + 5;
+        
         const tipusPunt = a > 0 ? "Mínim" : "Màxim";
         const recSymbol = a > 0 ? `[${decimalAFraccio(vy)}, +∞)` : `(-∞, ${decimalAFraccio(vy)}]`;
 
@@ -107,15 +98,14 @@ function executar() {
     }
 
     res.innerHTML = `<div style="text-align:center; margin-bottom:10px;"><b>${titol}</b></div>${info}`;
-    dibuixar(f, xMin, xMax);
+    dibuixar(f, xMin, xMax, mode);
 }
 
-function dibuixar(f, xMin, xMax) {
+function dibuixar(f, xMin, xMax, mode) {
     const xValues = [];
     const yData = [];
-    
-    // Generem punts només dins de l'interval definit
-    const pas = (xMax - xMin) / 50; 
+    const pas = (xMax - xMin) / 40; 
+
     for (let x = xMin; x <= xMax; x += pas) {
         xValues.push(x.toFixed(2));
         yData.push(f(x));
@@ -132,24 +122,30 @@ function dibuixar(f, xMin, xMax) {
                 data: yData,
                 borderColor: '#3498db',
                 borderWidth: 3,
-                pointRadius: 4, // Punts visibles als extrems
-                pointHitRadius: 10,
+                pointRadius: mode === 'punts' ? 5 : 0, 
                 fill: false,
-                tension: 0
+                tension: mode === 'quadratica' ? 0.4 : 0
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: false,
+            layout: { padding: { top: 10, bottom: 10, left: 20, right: 20 } },
             scales: {
                 x: {
                     type: 'linear',
                     position: 'center',
+                    min: xMin,
+                    max: xMax,
                     grid: { color: '#ddd' }
                 },
                 y: {
+                    type: 'linear',
                     position: 'center',
-                    grid: { color: '#ddd' }
+                    grid: { color: '#ddd' },
+                    beginAtZero: false,
+                    grace: '5%' // Evita que els punts toquin el límit i "saltin"
                 }
             },
             plugins: { legend: { display: false } }

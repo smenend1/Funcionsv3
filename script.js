@@ -34,7 +34,6 @@ function executar() {
     const res = document.getElementById('resultat-text');
     let f, titol, info = "", xMin, xMax, puntsTaula = [];
 
-    // Lògica de càlcul
     if (mode === 'punts') {
         const x1 = parseFloat(document.getElementById('x1').value), y1 = parseFloat(document.getElementById('y1').value);
         const x2 = parseFloat(document.getElementById('x2').value), y2 = parseFloat(document.getElementById('y2').value);
@@ -49,10 +48,12 @@ function executar() {
         const a = parseFloat(document.getElementById('a').value), b = parseFloat(document.getElementById('b').value), c = parseFloat(document.getElementById('c').value);
         f = (x) => a*x*x + b*x + c;
         const vx = -b/(2*a), vy = f(vx);
-        xMin = vx - 4; xMax = vx + 4;
+        xMin = vx - 5; xMax = vx + 5;
         titol = `f(x) = ${decimalAFraccio(a)}x² ${b>=0?'+':''} ${decimalAFraccio(b)}x ${c>=0?'+':''} ${decimalAFraccio(c)}`;
         const rec = a > 0 ? `[${decimalAFraccio(vy)}, +∞)` : `(-∞, ${decimalAFraccio(vy)}]`;
-        info = `<div class="badge"><b>Vèrtex:</b> (${decimalAFraccio(vx)}, ${decimalAFraccio(vy)})</div><br><div class="badge"><b>Recorregut:</b> ${rec}</div>`;
+        info = `<div class="badge"><b>Domini:</b> ℝ</div><br>
+                <div class="badge"><b>Vèrtex:</b> (${decimalAFraccio(vx)}, ${decimalAFraccio(vy)})</div><br>
+                <div class="badge"><b>Recorregut:</b> ${rec}</div>`;
         puntsTaula = [vx - 2, vx - 1, vx, vx + 1, vx + 2];
         let disc = b*b - 4*a*c;
         if (disc >= 0) {
@@ -62,45 +63,46 @@ function executar() {
         const m = parseFloat(document.getElementById('m').value), n = parseFloat(document.getElementById('n').value);
         f = (x) => m * x + n; xMin = -5; xMax = 5;
         titol = `f(x) = ${decimalAFraccio(m)}x ${n>=0?'+':''} ${decimalAFraccio(n)}`;
-        info = `<div class="badge"><b>Domini:</b> ℝ</div><div class="badge"><b>Recorregut:</b> ℝ</div>`;
+        info = `<div class="badge"><b>Domini:</b> ℝ</div><br><div class="badge"><b>Recorregut:</b> ℝ</div>`;
         puntsTaula = [-2, 0, 2];
     }
 
-    // TAULA DE VALORS (Neta i lleugera)
     puntsTaula = [...new Set(puntsTaula)].sort((a,b) => a-b);
     let taulaHTML = `<div style="overflow-x:auto; margin-top:10px;"><table style="width:100%; border-collapse:collapse; font-size:0.85rem;" border="1">
         <tr style="background:#eee"><th>x</th><th>f(x)</th></tr>`;
     puntsTaula.forEach(px => {
-        if(!isNaN(px)) taulaHTML += `<tr><td>${px.toFixed(1)}</td><td>${decimalAFraccio(f(px))}</td></tr>`;
+        if(!isNaN(px)) taulaHTML += `<tr><td>${px.toFixed(2)}</td><td>${decimalAFraccio(f(px))}</td></tr>`;
     });
     taulaHTML += `</table></div>`;
 
     res.innerHTML = `<div style="padding:5px;"><b>${titol}</b><br>${info}${taulaHTML}</div>`;
     
-    // Dibuixar només si el canvas existeix
-    const canvas = document.getElementById('graficaCanvas');
-    if (canvas) dibuixar(f, xMin, xMax, mode);
+    dibuixar(f, xMin, xMax, mode);
 }
 
 function dibuixar(f, xMin, xMax, mode) {
     const dataPoints = [];
-    for (let x = xMin; x <= xMax; x += (xMax-xMin)/30) {
-        dataPoints.push({x: x, y: f(x)});
+    let yMinVal = Infinity, yMaxVal = -Infinity;
+
+    for (let x = xMin; x <= xMax; x += (xMax-xMin)/40) {
+        let valY = f(x);
+        dataPoints.push({x: x, y: valY});
+        if (valY < yMinVal) yMinVal = valY;
+        if (valY > yMaxVal) yMaxVal = valY;
     }
 
     const ctx = document.getElementById('graficaCanvas').getContext('2d');
     if (instaciaGrafica) instaciaGrafica.destroy();
 
     instaciaGrafica = new Chart(ctx, {
-        type: 'scatter', // Usem scatter per a un control total dels eixos X-Y
+        type: 'scatter',
         data: {
             datasets: [{
-                label: 'Funció',
                 data: dataPoints,
                 showLine: true,
                 borderColor: '#3498db',
                 borderWidth: 2,
-                pointRadius: mode === 'punts' ? 4 : 0,
+                pointRadius: mode === 'punts' ? 5 : 0,
                 fill: false,
                 tension: mode === 'quadratica' ? 0.4 : 0
             }]
@@ -112,13 +114,14 @@ function dibuixar(f, xMin, xMax, mode) {
             scales: {
                 x: {
                     type: 'linear',
-                    position: 'center',
-                    grid: { color: '#ccc' }
+                    grid: { color: (c) => c.tick.value === 0 ? '#000' : '#ddd', lineWidth: (c) => c.tick.value === 0 ? 2 : 1 }
                 },
                 y: {
                     type: 'linear',
-                    position: 'center',
-                    grid: { color: '#ccc' }
+                    // Escala controlada per evitar els "30" fantasmes
+                    min: yMinVal - 2,
+                    max: yMaxVal + 2,
+                    grid: { color: (c) => c.tick.value === 0 ? '#000' : '#ddd', lineWidth: (c) => c.tick.value === 0 ? 2 : 1 }
                 }
             },
             plugins: { legend: { display: false } }

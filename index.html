@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MathEngine Pro V2</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <header>
+        <h1>MATHENGINE PRO V2</h1>
+    </header>
+
+    <main>
+        <section class="config-card">
+            <h2>Configuració</h2>
+            <select id="mode-selector" onchange="switchMode()">
+                <option value="lineal">Funció Lineal (y = mx + n)</option>
+                <option value="quadratica">Funció Quadràtica (ax² + bx + c)</option>
+                <option value="punts">Trobar des de 2 Punts</option>
+            </select>
+
+            <div id="inputs-container"></div>
+            <button class="btn-primary" onclick="executar()">CALCULAR I DIBUIXAR</button>
+        </section>
+
+        <section class="results-container">
+            <div class="card">
+                <h3>Anàlisi Matemàtica</h3>
+                <div id="resultat-text">Introdueix dades per començar.</div>
+            </div>
+
+            <div class="card">
+                <h3>Gràfica</h3>
+                <canvas id="graficaCanvas"></canvas>
+            </div>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+    </script>
+</body>
+</html>

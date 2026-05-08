@@ -1,0 +1,13 @@
+{
+  "name": "MathEngine Pro V2",
+  "short_name": "MathEngine",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#2c3e50",
+  "theme_color": "#3498db",
+  "icons": [{
+    "src": "https://cdn-icons-png.flaticon.com/512/2344/2344132.png",
+    "sizes": "512x512",
+    "type": "image/png"
+  }]
+}
